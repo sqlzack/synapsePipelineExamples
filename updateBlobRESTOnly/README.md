@@ -1,4 +1,4 @@
-![Pipeline Image](.\image\pipelineImage.png)
+![Pipeline Image](./image/pipelineImage.png)
 
 ## Append API Response to file REST Only
 This pipeline is inspired from the one in [this video](https://www.youtube.com/watch?v=i4xz2haDlOg). It can be used for appending responses from an API to a file that will utlimately be very small (~2MB). Although Synape is not intended to be used as a message processor this could be used as a way to scrape for an event to kick off a larger pipeline
