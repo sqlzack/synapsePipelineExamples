@@ -1,2 +1,3 @@
 # synapsePipelineExamples
-[UpdateBlobRestOnly](.\updateBlobRestOnly\README.md)
+[UpdateBlobRestOnly](./updateBlobRestOnly/README.md)
+[pauseScaleResume](./pauseScaleResumeSQLPool/README.md)
