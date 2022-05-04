@@ -22,5 +22,3 @@ The pl_allPoolsResumeOrPause is meant to automatically take the Action set in pa
 
 ## Importing to Synapse.
 In Synapse Pipelines, import the zip in this repo. _(more to come here)_
-
-## Optional Pipeline - Pause/Resume All Workspace Pools
