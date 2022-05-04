@@ -10,6 +10,140 @@
     "variables": { "workspaceId": "[concat('Microsoft.Synapse/workspaces/', parameters('workspaceName'))]" },
     "resources": [
         {
+            "name": "[concat(parameters('workspaceName'), '/pl_allPoolsResumeOrPause')]",
+            "type": "Microsoft.Synapse/workspaces/pipelines",
+            "apiVersion": "2019-06-01-preview",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "Find All SQL Pools for Workspace",
+                        "type": "WebActivity",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "7.00:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "url": {
+                                "value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.SubscriptionId,'/resourceGroups/',pipeline().parameters.ResourceGroup,'/providers/Microsoft.Synapse/workspaces/',pipeline().parameters.SynapseWorkspace,'/sqlPools?api-version=2021-06-01')",
+                                "type": "Expression"
+                            },
+                            "method": "GET",
+                            "headers": {},
+                            "authentication": {
+                                "type": "MSI",
+                                "resource": "https://management.azure.com"
+                            }
+                        }
+                    },
+                    {
+                        "name": "Loop Through Pools",
+                        "type": "ForEach",
+                        "dependsOn": [
+                            {
+                                "activity": "Find All SQL Pools for Workspace",
+                                "dependencyConditions": [ "Succeeded" ]
+                            }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "items": {
+                                "value": "@activity('Find All SQL Pools for Workspace').output.value",
+                                "type": "Expression"
+                            },
+                            "activities": [
+                                {
+                                    "name": "Retrieve Pool name",
+                                    "type": "SetVariable",
+                                    "dependsOn": [],
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "variableName": "poolName",
+                                        "value": {
+                                            "value": "@item().name",
+                                            "type": "Expression"
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Complete Action on SQL Pool",
+                                    "type": "ExecutePipeline",
+                                    "dependsOn": [
+                                        {
+                                            "activity": "Retrieve Pool name",
+                                            "dependencyConditions": [ "Succeeded" ]
+                                        }
+                                    ],
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "pipeline": {
+                                            "referenceName": "pl_pauseScaleResume",
+                                            "type": "PipelineReference"
+                                        },
+                                        "waitOnCompletion": true,
+                                        "parameters": {
+                                            "Action": {
+                                                "value": "@pipeline().parameters.Action",
+                                                "type": "Expression"
+                                            },
+                                            "ActionScale": {
+                                                "value": "@pipeline().parameters.ActionScale",
+                                                "type": "Expression"
+                                            },
+                                            "SubscriptionId": {
+                                                "value": "@pipeline().parameters.SubscriptionId",
+                                                "type": "Expression"
+                                            },
+                                            "ResourceGroup": {
+                                                "value": "@pipeline().parameters.ResourceGroup",
+                                                "type": "Expression"
+                                            },
+                                            "SynapseWorkspace": {
+                                                "value": "@pipeline().parameters.SynapseWorkspace",
+                                                "type": "Expression"
+                                            },
+                                            "SqlPool": {
+                                                "value": "@variables('poolName')",
+                                                "type": "Expression"
+                                            },
+                                            "Region": {
+                                                "value": "@pipeline().parameters.Region",
+                                                "type": "Expression"
+                                            },
+                                            "EmptyBodyForPost": "{}"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {},
+                    "cancelAfter": {}
+                },
+                "parameters": {
+                    "Action": {
+                        "type": "string",
+                        "defaultValue": "pause"
+                    },
+                    "ActionScale": { "type": "string" },
+                    "SubscriptionId": { "type": "string" },
+                    "ResourceGroup": { "type": "string" },
+                    "SynapseWorkspace": { "type": "string" },
+                    "Region": { "type": "string" }
+                },
+                "variables": { "poolName": { "type": "String" } },
+                "folder": { "name": "pauseScaleResume" },
+                "annotations": []
+            },
+            "dependsOn": [ "[concat(variables('workspaceId'), '/pipelines/pl_pauseScaleResume')]" ]
+        },
+        {
             "name": "[concat(parameters('workspaceName'), '/pl_pauseScaleResume')]",
             "type": "Microsoft.Synapse/workspaces/pipelines",
             "apiVersion": "2019-06-01-preview",
@@ -51,13 +185,12 @@
                                                     "value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.SubscriptionId,'/resourceGroups/',pipeline().parameters.ResourceGroup,'/providers/Microsoft.Synapse/workspaces/',pipeline().parameters.SynapseWorkspace,'/sqlPools/',pipeline().parameters.SqlPool,'/',toLower(pipeline().parameters.Action),'?api-version=2021-06-01')",
                                                     "type": "Expression"
                                                 },
-                                                "connectVia": {
-                                                    "referenceName": "AutoResolveIntegrationRuntime",
-                                                    "type": "IntegrationRuntimeReference"
-                                                },
                                                 "method": "POST",
                                                 "headers": {},
-                                                "body": {},
+                                                "body": {
+                                                    "value": "@pipeline().parameters.EmptyBodyForPost",
+                                                    "type": "Expression"
+                                                },
                                                 "authentication": {
                                                     "type": "MSI",
                                                     "resource": "https://management.azure.com"
@@ -86,13 +219,12 @@
                                                     "value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.SubscriptionId,'/resourceGroups/',pipeline().parameters.ResourceGroup,'/providers/Microsoft.Synapse/workspaces/',pipeline().parameters.SynapseWorkspace,'/sqlPools/',pipeline().parameters.SqlPool,'/',toLower(pipeline().parameters.Action),'?api-version=2021-06-01')",
                                                     "type": "Expression"
                                                 },
-                                                "connectVia": {
-                                                    "referenceName": "AutoResolveIntegrationRuntime",
-                                                    "type": "IntegrationRuntimeReference"
-                                                },
                                                 "method": "POST",
                                                 "headers": {},
-                                                "body": {},
+                                                "body": {
+                                                    "value": "@pipeline().parameters.EmptyBodyForPost",
+                                                    "type": "Expression"
+                                                },
                                                 "authentication": {
                                                     "type": "MSI",
                                                     "resource": "https://management.azure.com"
@@ -120,10 +252,6 @@
                                                 "url": {
                                                     "value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.SubscriptionId,'/resourceGroups/',pipeline().parameters.ResourceGroup,'/providers/Microsoft.Synapse/workspaces/',pipeline().parameters.SynapseWorkspace,'/sqlPools/',pipeline().parameters.SqlPool,'?api-version=2021-06-01')",
                                                     "type": "Expression"
-                                                },
-                                                "connectVia": {
-                                                    "referenceName": "AutoResolveIntegrationRuntime",
-                                                    "type": "IntegrationRuntimeReference"
                                                 },
                                                 "method": "PUT",
                                                 "headers": {},
@@ -159,10 +287,6 @@
                                 "value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.SubscriptionId,'/resourceGroups/',pipeline().parameters.ResourceGroup,'/providers/Microsoft.Synapse/workspaces/',pipeline().parameters.SynapseWorkspace,'/sqlPools/',pipeline().parameters.SqlPool,'?api-version=2021-06-01')",
                                 "type": "Expression"
                             },
-                            "connectVia": {
-                                "referenceName": "AutoResolveIntegrationRuntime",
-                                "type": "IntegrationRuntimeReference"
-                            },
                             "method": "GET",
                             "headers": {},
                             "authentication": {
@@ -177,30 +301,16 @@
                     "cancelAfter": {}
                 },
                 "parameters": {
-                    "Action": {
-                        "type": "string",
-                        "defaultValue": ""
-                    },
+                    "Action": { "type": "string" },
                     "ActionScale": { "type": "string" },
-                    "SubscriptionId": {
+                    "SubscriptionId": { "type": "string" },
+                    "ResourceGroup": { "type": "string" },
+                    "SynapseWorkspace": { "type": "string" },
+                    "SqlPool": { "type": "string" },
+                    "Region": { "type": "string" },
+                    "EmptyBodyForPost": {
                         "type": "string",
-                        "defaultValue": ""
-                    },
-                    "ResourceGroup": {
-                        "type": "string",
-                        "defaultValue": ""
-                    },
-                    "SynapseWorkspace": {
-                        "type": "string",
-                        "defaultValue": ""
-                    },
-                    "SqlPool": {
-                        "type": "string",
-                        "defaultValue": ""
-                    },
-                    "Region": {
-                        "type": "string",
-                        "defaultValue": ""
+                        "defaultValue": {}
                     }
                 },
                 "folder": { "name": "pauseScaleResume" },
