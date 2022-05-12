@@ -1,3 +1,5 @@
-# synapsePipelineExamples
-[UpdateBlobRestOnly](./updateBlobRestOnly/README.md)
-[pauseScaleResume](./pauseScaleResumeSQLPool/README.md)
+# Example Pipelines for Synapse
+
+[UpdateBlobRestOnly](.\updateBlobRESTOnly\README.md)
+
+[pauseScaleResume](.\pauseScaleResumeSQLPool\README.md)
