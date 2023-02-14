@@ -1,0 +1,22 @@
+{
+    "name": "ls_serverlessSQL",
+    "properties": {
+        "parameters": {
+            "synapseWorkspaceName": {
+                "type": "String"
+            },
+            "serverlessDBName": {
+                "type": "string"
+            }
+        },
+        "annotations": [],
+        "type": "AzureSqlDW",
+        "typeProperties": {
+            "connectionString": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=\"@{concat(linkedService().synapseWorkspaceName,'-ondemand.sql.azuresynapse.net')}\";Initial Catalog=@{linkedService().serverlessDBName}"
+        },
+        "connectVia": {
+            "referenceName": "AutoResolveIntegrationRuntime",
+            "type": "IntegrationRuntimeReference"
+        }
+    }
+}
